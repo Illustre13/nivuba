@@ -1,0 +1,3 @@
+[submodule "nivuba-core"]
+	path = nivuba-core
+	url = https://github.com/Illustre13/nivuba-core.git
