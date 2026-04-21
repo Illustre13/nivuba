@@ -4,3 +4,6 @@
 [submodule "nivuba-ui"]
 	path = nivuba-ui
 	url = https://github.com/Illustre13/nivuba-ui.git
+[submodule "nivuba-ml"]
+	path = nivuba-ml
+	url = https://github.com/Illustre13/nivuba-ml.git
