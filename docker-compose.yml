@@ -1,0 +1,100 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-nivuba}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      POSTGRES_DB: ${DB_NAME:-nivuba_db}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-nivuba} -d ${DB_NAME:-nivuba_db}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - '6380:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  nivuba-ml:
+    build:
+      context: ./nivuba-ml
+      dockerfile: Dockerfile
+    environment:
+      MAXMIND_LICENSE_KEY: ${MAXMIND_LICENSE_KEY:-}
+    ports:
+      - '7860:7860'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:7860/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  nivuba-core:
+    build:
+      context: ./nivuba-core
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      ML_SERVICE_URL: http://nivuba-ml:7860
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nivuba-ml:
+        condition: service_healthy
+    command: >
+      sh -c "node -e \"require('./dist/typeorm/data-source').dataSource.initialize().then(ds => ds.runMigrations()).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\" && node dist/main"
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:3000/api/v1.0/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  nivuba-ui:
+    build:
+      context: ./nivuba-ui
+      dockerfile: Dockerfile
+    ports:
+      - '8876:80'
+    depends_on:
+      nivuba-core:
+        condition: service_healthy
+
+  bull-board:
+    image: deadly0/bull-board
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - '3001:3000'
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
