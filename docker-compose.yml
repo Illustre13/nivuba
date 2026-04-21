@@ -39,7 +39,9 @@ services:
     ports:
       - '7860:7860'
     healthcheck:
-      test: ['CMD-SHELL', 'curl -sf http://localhost:7860/health || exit 1']
+      test:
+        - CMD-SHELL
+        - 'python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(''http://localhost:7860/health'').getcode()==200 else 1)"'
       interval: 30s
       timeout: 10s
       retries: 5
@@ -67,7 +69,9 @@ services:
     command: >
       sh -c "node -e \"require('./dist/typeorm/data-source').dataSource.initialize().then(ds => ds.runMigrations()).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\" && node dist/main"
     healthcheck:
-      test: ['CMD-SHELL', 'curl -sf http://localhost:3000/api/v1.0/health || exit 1']
+      test:
+        - CMD-SHELL
+        - 'node -e "const http=require(''http''); const req=http.get(''http://localhost:3000/api/v1.0/health'', res => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on(''error'', () => process.exit(1));"'
       interval: 15s
       timeout: 5s
       retries: 5
