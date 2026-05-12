@@ -12,7 +12,7 @@ It is built as a **monorepo of three interconnected services**:
 
 ## Live Deployment
 
-Deployed Application: [streamlit](https://rcaa-flight-prediction.streamlit.app/)
+Deployed Application: [streamlit]()
 
 ## Key Features
 
