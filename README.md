@@ -12,13 +12,13 @@ It is built as a **monorepo of three interconnected services**:
 
 ## Live Deployment
 
-Deployed Application: [streamlit]()
+Not deployed yet. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the current state and roadmap.
 
 ## Key Features
 
 - AI-based credit risk scoring system  
 - End-to-end loan application workflow automation  
-- ETL pipelines for structured data processing  
+- Feature preprocessing pipeline for model inputs (dedicated ETL is on the roadmap)  
 - Real-time ML inference for decision support  
 - Secure authentication (JWT + RBAC)  
 - Asynchronous task processing with Redis BullMQ  
@@ -54,7 +54,7 @@ FastAPI service providing:
 - Database: PostgreSQL  
 - Queue System: Redis BullMQ  
 - Authentication: JWT, RBAC  
-- Data Engineering: ETL pipelines, feature processing  
+- Data Engineering: scikit-learn feature pipeline (ETL planned)  
 - DevOps: Docker  
 
 ---
@@ -63,9 +63,9 @@ FastAPI service providing:
 
 1. User submits loan application via UI  
 2. Backend validates and processes request  
-3. ETL pipeline prepares structured data  
-4. ML service performs risk prediction  
-5. Result is returned and stored in database  
+3. Backend queues an evaluation job (Redis/Bull)  
+4. ML service performs risk prediction (score 0–1000)  
+5. Backend applies the decision rule (score ≥ 700 and affordability ≤ 35% of salary) and stores the result  
 6. UI displays final decision and score  
 
 ---
@@ -88,3 +88,26 @@ nivuba/
 ├── nivuba-ui/      # React frontend
 ├── nivuba-core/    # NestJS backend API
 ├── nivuba-ml/      # FastAPI ML service
+```
+
+---
+
+## Getting Started
+
+Requires Docker, git, and `make`. (`jq` and `curl` are also needed for the smoke test.)
+
+```bash
+git clone https://github.com/Illustre13/nivuba.git
+cd nivuba
+make up       # fetches the submodules, creates .env from .env.example, builds, starts, waits for health
+make smoke    # end-to-end check: submit -> ML scoring -> decision -> officer review
+```
+
+Run `make help` for the other targets, such as `test`, `logs`, `down` and `reset`. Demo accounts are listed in [PROJECT_STATUS.md](PROJECT_STATUS.md#demo-accounts-seeded-by-migration-branchesanddatapool).
+
+| Service | URL |
+|---|---|
+| UI | http://localhost:8876 |
+| Core API / Swagger | http://localhost:3000/api/v1.0 · http://localhost:3000/docs |
+| ML service | http://localhost:7860 |
+| Bull Board | http://localhost:3001 |
